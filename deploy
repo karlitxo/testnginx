@@ -3,11 +3,13 @@
 #set -e
 if [ -v $name ] && [ -v $port ] 
 then
-	echo "Usage: export name=containername port=containerport && ./deploy"
+	echo "Basic nginx RP - edit nginx.conf upstream - unsafe!!! \n
+              Usage: export name=containername port=containerport && ./deploy"
 else
 	echo $0 :: name :: $name :: port :: $port
 fi
-#docker build -t $name .
-#docker rm -f $name
-#docker run -d --name=$name -p $port:80  $name
+source .env
+docker build -t $name .
+docker rm -f $name
+docker run -d --name=$name -p $port:80  $name
 
