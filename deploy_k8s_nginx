@@ -1,0 +1,84 @@
+#!/bin/bash
+#
+set -e
+target_port=8080
+
+if [ ! -d "nginx-deployment" ]
+then
+  mkdir nginx-deployment
+fi
+cd nginx-deployment
+
+if [ ! -f "nginx-deployment.yaml" ]
+then
+cat << DEPLOYMENT >> nginx-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: karlitxo/nginx:0.0.1
+        ports:
+        - containerPort: ${port:-9999}
+DEPLOYMENT
+fi
+
+ls -al
+
+kubectl apply -f ./nginx-deployment.yaml
+
+kubectl get deployment nginx-deployment
+
+kubectl expose deployment nginx-deployment --target-port=$target_port --type=NodePort
+
+#$new_host=
+
+# create ingress
+if [ ! $0 && ! -f "nginx-ingress.yaml" ]
+then
+cat << INGRESS >> nginx-ingress.yaml
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: basic-ingress
+spec:
+  backend:
+    serviceName: nginx-deployment
+    servicePort: $target-port
+INGRESS
+# apiVersion: extensions/v1beta1
+# kind: Ingress
+# metadata:
+#   name: example-ingress
+#   annotations:
+#     nginx.ingress.kubernetes.io/rewrite-target: /
+# spec:
+#  rules:
+#  - host: $new_host
+#    http:
+#      paths:
+#      - path: /*
+#        backend:
+#          serviceName: nginx
+#          servicePort: $target_port
+#INGRESS
+fi
+kubectl apply -f nginx-ingress.yaml
+
+kubectl get ingress basic-ingress
+
+kubectl expose rc nginx-example --port=8765 --target-port=$target_port \
+        --name=nginx-example-lb --type=LoadBalancer
